@@ -1,11 +1,12 @@
 // server.js
+require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
 const path = require("path");
 const moment = require("moment");
 const cron = require("node-cron");
-require("dotenv").config();
+
 
 const app = express();
 
