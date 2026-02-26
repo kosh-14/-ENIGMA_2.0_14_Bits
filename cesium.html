@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌍 SDG 11 DIGITAL TWIN - RESILIENT CITY</title>
+    
+    <!-- Cesium.js -->
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/Cesium.js"></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.117/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+        }
+
+        body {
+            background: #000000;
+            overflow: hidden;
+        }
+
+        #cesiumContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            background: #000000;
+        }
+
+        /* Custom Cesium skin - Black & Green */
+        .cesium-viewer {
+            background: #000000 !important;
+        }
+
+        .cesium-viewer-toolbar {
+            display: none; /* Hide default toolbar, we'll use custom */
+        }
+
+        /* Main Dashboard - Black with Green accents */
+        #dashboard {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 380px;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid #00ff88;
+            border-radius: 16px;
+            padding: 20px;
+            color: #ffffff;
+            z-index: 100;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.2);
+            max-height: 95vh;
+            overflow-y: auto;
+        }
+
+        /* Scrollbar styling */
+        #dashboard::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #dashboard::-webkit-scrollbar-track {
+            background: #111111;
+        }
+
+        #dashboard::-webkit-scrollbar-thumb {
+            background: #00ff88;
+            border-radius: 3px;
+        }
+
+        .title-section {
+            border-bottom: 2px solid #00ff88;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .main-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #00ff88;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .subtitle {
+            font-size: 0.8rem;
+            color: #88ffaa;
+            margin-top: 5px;
+            letter-spacing: 1px;
+        }
+
+        .sdg-badge {
+            display: inline-block;
+            background: #00ff88;
+            color: #000000;
+            font-weight: 800;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            margin-top: 8px;
+            border: 1px solid #00ff88;
+        }
+
+        /* Metric Categories */
+        .category {
+            margin-bottom: 25px;
+        }
+
+        .category-title {
+            color: #00ff88;
+            font-weight: 700;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            border-left: 4px solid #00ff88;
+            padding-left: 10px;
+        }
+
+        /* Environmental Metrics Grid */
+        .env-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .metric-card {
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 12px;
+            padding: 12px;
+            transition: all 0.3s;
+        }
+
+        .metric-card:hover {
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .metric-icon {
+            font-size: 1.2rem;
+            color: #00ff88;
+            margin-bottom: 8px;
+        }
+
+        .metric-label {
+            font-size: 0.7rem;
+            color: #88ffaa;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-top: 4px;
+        }
+
+        .metric-unit {
+            font-size: 0.7rem;
+            color: #88ffaa;
+            margin-left: 4px;
+        }
+
+        /* Social Metrics */
+        .social-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .social-item {
+            background: rgba(0, 255, 136, 0.03);
+            border: 1px solid rgba(0, 255, 136, 0.15);
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .social-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .social-header i {
+            color: #00ff88;
+            font-size: 0.9rem;
+        }
+
+        .social-header span {
+            font-size: 0.8rem;
+            color: #88ffaa;
+        }
+
+        .social-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        /* Micro Factors */
+        .micro-list {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .micro-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.1);
+        }
+
+        .micro-row:last-child {
+            border-bottom: none;
+        }
+
+        .micro-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+
+        .micro-left i {
+            color: #00ff88;
+            width: 20px;
+        }
+
+        .micro-right {
+            font-weight: 700;
+            color: #00ff88;
+        }
+
+        /* Progress bar for micro metrics */
+        .micro-progress {
+            width: 80px;
+            height: 4px;
+            background: #222222;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .micro-progress-fill {
+            height: 100%;
+            background: #00ff88;
+            border-radius: 2px;
+        }
+
+        /* Active Buttons Only */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            background: transparent;
+            border: 2px solid #00ff88;
+            color: #00ff88;
+            font-weight: 700;
+            font-size: 0.8rem;
+            padding: 10px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .action-btn:hover {
+            background: #00ff88;
+            color: #000000;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+        }
+
+        .action-btn.active {
+            background: #00ff88;
+            color: #000000;
+            box-shadow: 0 0 20px #00ff88;
+        }
+
+        .action-btn i {
+            margin-right: 6px;
+        }
+
+        /* Scenario Tester */
+        .scenario-tester {
+            margin-top: 25px;
+            border-top: 1px solid rgba(0, 255, 136, 0.3);
+            padding-top: 20px;
+        }
+
+        .scenario-title {
+            color: #00ff88;
+            font-weight: 700;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        .scenario-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .scenario-btn {
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            color: #ffffff;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .scenario-btn:hover {
+            background: rgba(0, 255, 136, 0.2);
+            border-color: #00ff88;
+        }
+
+        .scenario-btn.active {
+            background: #00ff88;
+            color: #000000;
+            font-weight: 700;
+        }
+
+        /* Stats Footer */
+        .stats-footer {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(0, 255, 136, 0.3);
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: #88ffaa;
+        }
+
+        .stats-footer i {
+            color: #00ff88;
+            margin-right: 4px;
+        }
+
+        /* Legend Panel */
+        #legend-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid #00ff88;
+            border-radius: 12px;
+            padding: 15px;
+            color: white;
+            z-index: 100;
+            min-width: 200px;
+        }
+
+        .legend-title {
+            color: #00ff88;
+            font-weight: 700;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.3);
+            padding-bottom: 5px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0;
+            font-size: 0.8rem;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .legend-color.green { background: #00ff88; }
+        .legend-color.yellow { background: #ffff00; }
+        .legend-color.red { background: #ff4444; }
+        .legend-color.blue { background: #4444ff; }
+        .legend-color.purple { background: #aa44ff; }
+
+        /* Toast Notification */
+        #toast {
+            position: absolute;
+            top: 20px;
+            right: 420px;
+            background: #000000;
+            border: 2px solid #00ff88;
+            color: #00ff88;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-weight: 700;
+            z-index: 200;
+            display: none;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Coordinates display */
+        #coordinates {
+            position: absolute;
+            bottom: 20px;
+            left: 420px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            z-index: 100;
+        }
+
+        /* Hide unnecessary Cesium UI elements */
+        .cesium-viewer-geocoderContainer,
+        .cesium-viewer-home,
+        .cesium-viewer-timeline,
+        .cesium-viewer-animation,
+        .cesium-baseLayerPicker,
+        .cesium-navigation-help {
+            display: none !important;
+        }
+
+        /* Simple grid lines - minimal */
+        .cesium-grid {
+            opacity: 0.3 !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="cesiumContainer"></div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboard">
+        <div class="title-section">
+            <div class="main-title">SDG 11 · RESILIENT CITY</div>
+            <div class="subtitle">DIGITAL TWIN · REAL-TIME SATELLITE DATA</div>
+            <div class="sdg-badge">SUSTAINABLE CITIES & COMMUNITIES</div>
+        </div>
+
+        <!-- ENVIRONMENTAL METRICS -->
+        <div class="category">
+            <div class="category-title">ENVIRONMENTAL</div>
+            <div class="env-grid">
+                <div class="metric-card">
+                    <div class="metric-icon">🌡️</div>
+                    <div class="metric-label">Heat Islands</div>
+                    <div class="metric-value">34.2<span class="metric-unit">°C</span></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">💧</div>
+                    <div class="metric-label">Flood Risk</div>
+                    <div class="metric-value">23<span class="metric-unit">%</span></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">🌳</div>
+                    <div class="metric-label">Green Cover</div>
+                    <div class="metric-value">15<span class="metric-unit">%</span></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">🌬️</div>
+                    <div class="metric-label">Air Quality</div>
+                    <div class="metric-value">142<span class="metric-unit">AQI</span></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">💨</div>
+                    <div class="metric-label">Wind Pattern</div>
+                    <div class="metric-value">12<span class="metric-unit">km/h</span></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">☁️</div>
+                    <div class="metric-label">Urban Climate</div>
+                    <div class="metric-value">+2.1<span class="metric-unit">°C</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SOCIAL METRICS -->
+        <div class="category">
+            <div class="category-title">SOCIAL</div>
+            <div class="social-grid">
+                <div class="social-item">
+                    <div class="social-header">
+                        <i class="fas fa-users"></i>
+                        <span>Vulnerable Groups</span>
+                    </div>
+                    <div class="social-value">12,450</div>
+                </div>
+                <div class="social-item">
+                    <div class="social-header">
+                        <i class="fas fa-hospital"></i>
+                        <span>Critical Facilities</span>
+                    </div>
+                    <div class="social-value">8</div>
+                </div>
+                <div class="social-item">
+                    <div class="social-header">
+                        <i class="fas fa-people-arrows"></i>
+                        <span>Movement Patterns</span>
+                    </div>
+                    <div class="social-value">2,340 <span style="font-size:0.7rem;">veh/h</span></div>
+                </div>
+                <div class="social-item">
+                    <div class="social-header">
+                        <i class="fas fa-tree"></i>
+                        <span>Tree Species</span>
+                    </div>
+                    <div class="social-value">12</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MICRO FACTORS -->
+        <div class="category">
+            <div class="category-title">MICRO FACTORS</div>
+            <div class="micro-list">
+                <div class="micro-row">
+                    <div class="micro-left">
+                        <i class="fas fa-tree"></i>
+                        <span>Shade Density</span>
+                    </div>
+                    <div class="micro-right">65%</div>
+                    <div class="micro-progress">
+                        <div class="micro-progress-fill" style="width:65%"></div>
+                    </div>
+                </div>
+                <div class="micro-row">
+                    <div class="micro-left">
+                        <i class="fas fa-city"></i>
+                        <span>Building Height</span>
+                    </div>
+                    <div class="micro-right">24m</div>
+                    <div class="micro-progress">
+                        <div class="micro-progress-fill" style="width:45%"></div>
+                    </div>
+                </div>
+                <div class="micro-row">
+                    <div class="micro-left">
+                        <i class="fas fa-road"></i>
+                        <span>Street Canyon</span>
+                    </div>
+                    <div class="micro-right">1.8</div>
+                    <div class="micro-progress">
+                        <div class="micro-progress-fill" style="width:60%"></div>
+                    </div>
+                </div>
+                <div class="micro-row">
+                    <div class="micro-left">
+                        <i class="fas fa-tint"></i>
+                        <span>Soil Moisture</span>
+                    </div>
+                    <div class="micro-right">34%</div>
+                    <div class="micro-progress">
+                        <div class="micro-progress-fill" style="width:34%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ACTIVE BUTTONS (ONLY ESSENTIAL) -->
+        <div class="action-buttons">
+            <button class="action-btn active" id="btn-live">
+                <i class="fas fa-satellite"></i> LIVE
+            </button>
+            <button class="action-btn" id="btn-compare">
+                <i class="fas fa-chart-line"></i> TRENDS
+            </button>
+            <button class="action-btn" id="btn-alerts">
+                <i class="fas fa-exclamation-triangle"></i> ALERTS
+            </button>
+        </div>
+
+        <!-- SCENARIO TESTER (WHAT-IF) -->
+        <div class="scenario-tester">
+            <div class="scenario-title">🧪 WHAT-IF SCENARIOS</div>
+            <div class="scenario-grid">
+                <button class="scenario-btn active" id="scenario-base">BASELINE</button>
+                <button class="scenario-btn" id="scenario-green">+10% GREEN</button>
+                <button class="scenario-btn" id="scenario-flood">FLASH FLOOD</button>
+                <button class="scenario-btn" id="scenario-heat">HEATWAVE</button>
+                <button class="scenario-btn" id="scenario-wind">WIND +50%</button>
+                <button class="scenario-btn" id="scenario-urban">URBAN DENSE</button>
+            </div>
+        </div>
+
+        <!-- FOOTER STATS -->
+        <div class="stats-footer">
+            <span><i class="fas fa-sync-alt"></i> UPDATING: REAL-TIME</span>
+            <span><i class="fas fa-database"></i> SENTINEL-2 L2A</span>
+        </div>
+    </div>
+
+    <!-- Legend Panel (Minimal) -->
+    <div id="legend-panel">
+        <div class="legend-title">LEGEND</div>
+        <div class="legend-item">
+            <div class="legend-color green"></div>
+            <span>Vegetation / Safe</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color yellow"></div>
+            <span>Moderate Risk</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color red"></div>
+            <span>Critical / Heat</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color blue"></div>
+            <span>Water / Flood</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color purple"></div>
+            <span>Critical Infrastructure</span>
+        </div>
+    </div>
+
+    <!-- Coordinates Display -->
+    <div id="coordinates">
+        <i class="fas fa-map-marker-alt"></i> 37.7749°N, 122.4194°W · SAN FRANCISCO
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast">
+        <i class="fas fa-check-circle" style="margin-right: 8px;"></i>
+        <span id="toast-message">SYSTEM READY</span>
+    </div>
+
+    <script>
+        // ========== CESIUM INITIALIZATION ==========
+        // Replace with your Cesium token
+        Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI3YmY4Y2JlMy02YWY1LTQ0ZjAtYmQwMC1lMDA4M2EwZGRkNTEiLCJpZCI6Mzk0NjM2LCJpYXQiOjE3NzIwODY0NTR9.4tu_tNfx7fkuDtOWcg6HSUiBGn-y0bdEVuDTB_0zgHk';
+        
+        // Initialize viewer with minimal UI
+        const viewer = new Cesium.Viewer('cesiumContainer', {
+            terrain: Cesium.Terrain.fromWorldTerrain(),
+            animation: false,
+            baseLayerPicker: false,
+            fullscreenButton: false,
+            vrButton: false,
+            geocoder: false,
+            homeButton: false,
+            infoBox: true,
+            sceneModePicker: false,
+            selectionIndicator: true,
+            timeline: false,
+            navigationHelpButton: false,
+            navigationInstructionsInitiallyVisible: false,
+            skyBox: false,
+            skyAtmosphere: false,
+            targetFrameRate: 60,
+            contextOptions: {
+                webgl: {
+                    alpha: true,
+                    depth: true,
+                    stencil: true,
+                    antialias: true,
+                    powerPreference: "high-performance"
+                }
+            }
+        });
+
+        // Set background to black
+        viewer.scene.backgroundColor = Cesium.Color.BLACK;
+        viewer.scene.globe.baseColor = Cesium.Color.BLACK;
+        viewer.scene.skyBox.show = false;
+        viewer.scene.skyAtmosphere.show = false;
+        
+        // Add OSM Buildings (3D Tiles)
+        const osmBuildings = viewer.scene.primitives.add(Cesium.createOsmBuildings());
+        
+        // Style buildings for better visibility
+        osmBuildings.style = new Cesium.Cesium3DTileStyle({
+            color: {
+                conditions: [
+                    ["${height} > 50", "color('#00ff88', 0.7)"],
+                    ["${height} > 25", "color('#88ffaa', 0.7)"],
+                    ["true", "color('#aaffcc', 0.7)"]
+                ]
+            },
+            outline: true,
+            outlineColor: "color('#00ff88')",
+            outlineWidth: 1.0
+        });
+
+        // Add custom 3D tiles (if available)
+        // This would be your high-quality 3D models
+        // Example: viewer.scene.primitives.add(new Cesium.Cesium3DTileset({ url: 'your_tileset_url' }));
+
+        // Fly to San Francisco
+        viewer.camera.flyTo({
+            destination: Cesium.Cartesian3.fromDegrees(-122.4194, 37.7749, 1500),
+            orientation: {
+                heading: Cesium.Math.toRadians(0),
+                pitch: Cesium.Math.toRadians(-35),
+                roll: 0.0
+            },
+            duration: 3
+        });
+
+        // Add heat layer (simulated)
+        function addHeatLayer() {
+            const heatPositions = [
+                [-122.4194, 37.7749, 100],
+                [-122.4180, 37.7755, 150],
+                [-122.4200, 37.7735, 200],
+                [-122.4210, 37.7740, 120],
+                [-122.4175, 37.7750, 180]
+            ];
+            
+            heatPositions.forEach(pos => {
+                viewer.entities.add({
+                    position: Cesium.Cartesian3.fromDegrees(pos[0], pos[1], 50),
+                    ellipse: {
+                        semiMinorAxis: 100,
+                        semiMajorAxis: 100,
+                        material: Cesium.Color.fromCssColorString('#ff4444').withAlpha(0.3),
+                        outline: true,
+                        outlineColor: Cesium.Color.fromCssColorString('#ff8888')
+                    }
+                });
+            });
+        }
+
+        // Add flood zones
+        function addFloodZones() {
+            const floodAreas = [
+                [-122.425, 37.770, -122.415, 37.775],
+                [-122.418, 37.773, -122.412, 37.778]
+            ];
+            
+            floodAreas.forEach((area, index) => {
+                viewer.entities.add({
+                    polygon: {
+                        hierarchy: Cesium.Cartesian3.fromDegreesArray([
+                            area[0], area[1],
+                            area[2], area[1],
+                            area[2], area[3],
+                            area[0], area[3]
+                        ]),
+                        material: Cesium.Color.fromCssColorString('#4444ff').withAlpha(0.3),
+                        outline: true,
+                        outlineColor: Cesium.Color.fromCssColorString('#88aaff')
+                    }
+                });
+            });
+        }
+
+        // Add critical infrastructure markers
+        function addInfrastructure() {
+            const facilities = [
+                { lon: -122.4190, lat: 37.7755, name: 'General Hospital' },
+                { lon: -122.4205, lat: 37.7730, name: 'Fire Station' },
+                { lon: -122.4170, lat: 37.7745, name: 'Police HQ' },
+                { lon: -122.4220, lat: 37.7760, name: 'Emergency Center' }
+            ];
+            
+            facilities.forEach(f => {
+                viewer.entities.add({
+                    position: Cesium.Cartesian3.fromDegrees(f.lon, f.lat),
+                    point: {
+                        pixelSize: 12,
+                        color: Cesium.Color.fromCssColorString('#aa44ff'),
+                        outlineColor: Cesium.Color.fromCssColorString('#ffffff'),
+                        outlineWidth: 2
+                    },
+                    label: {
+                        text: f.name,
+                        font: '12px monospace',
+                        fillColor: Cesium.Color.fromCssColorString('#00ff88'),
+                        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                        outlineWidth: 2,
+                        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                        pixelOffset: new Cesium.Cartesian2(0, -20)
+                    }
+                });
+            });
+        }
+
+        // Add tree canopy (simulated)
+        function addTrees() {
+            for (let i = 0; i < 50; i++) {
+                const lon = -122.4194 + (Math.random() - 0.5) * 0.02;
+                const lat = 37.7749 + (Math.random() - 0.5) * 0.02;
+                
+                viewer.entities.add({
+                    position: Cesium.Cartesian3.fromDegrees(lon, lat, 10),
+                    billboard: {
+                        image: 'data:image/svg+xml,' + encodeURIComponent('<svg width="20" height="30" viewBox="0 0 20 30"><circle cx="10" cy="10" r="8" fill="#00ff88"/><rect x="8" y="16" width="4" height="12" fill="#88aa88"/></svg>'),
+                        scale: 0.8,
+                        verticalOrigin: Cesium.VerticalOrigin.BOTTOM
+                    }
+                });
+            }
+        }
+
+        // Add wind particles (simulated)
+        function addWindParticles() {
+            const particleSystem = viewer.scene.primitives.add(new Cesium.ParticleSystem({
+                image: 'data:image/svg+xml,' + encodeURIComponent('<svg width="4" height="4"><circle cx="2" cy="2" r="1" fill="#00ff88"/></svg>'),
+                startColor: Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.5),
+                endColor: Cesium.Color.fromCssColorString('#00ff88').withAlpha(0.0),
+                particleLife: 5.0,
+                speed: 2.0,
+                emissionRate: 50,
+                emitter: new Cesium.CircleEmitter(500),
+                bursts: []
+            }));
+            
+            particleSystem.emitter = new Cesium.BoxEmitter(new Cesium.Cartesian3(1000, 1000, 100));
+        }
+
+        // Initialize all layers
+        addHeatLayer();
+        addFloodZones();
+        addInfrastructure();
+        addTrees();
+        addWindParticles();
+
+        // ========== UI INTERACTIONS ==========
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toast-message');
+
+        function showToast(message, duration = 3000) {
+            toastMessage.textContent = message;
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, duration);
+        }
+
+        // Button handlers
+        document.getElementById('btn-live').addEventListener('click', function() {
+            document.querySelectorAll('.action-btn').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            showToast('🛰️ LIVE SATELLITE FEED ACTIVE');
+        });
+
+        document.getElementById('btn-compare').addEventListener('click', function() {
+            document.querySelectorAll('.action-btn').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            showToast('📊 HISTORICAL TRENDS LOADED');
+        });
+
+        document.getElementById('btn-alerts').addEventListener('click', function() {
+            document.querySelectorAll('.action-btn').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            showToast('⚠️ ACTIVE ALERTS: 3', 5000);
+        });
+
+        // Scenario handlers
+        const scenarios = ['base', 'green', 'flood', 'heat', 'wind', 'urban'];
+        scenarios.forEach(s => {
+            document.getElementById(`scenario-${s}`).addEventListener('click', function() {
+                document.querySelectorAll('.scenario-btn').forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                const messages = {
+                    'base': 'BASELINE CONDITIONS',
+                    'green': '🌳 +10% GREEN COVER · HEAT -2.3°C',
+                    'flood': '💧 FLASH FLOOD SIMULATION · 47% AREA',
+                    'heat': '🔥 HEATWAVE · TEMP +5.2°C',
+                    'wind': '💨 WIND SPEED +50% · PATTERN SHIFT',
+                    'urban': '🏙️ URBAN DENSITY +20% · HEAT ISLAND'
+                };
+                
+                showToast(messages[s]);
+                
+                // Update building colors based on scenario (simplified)
+                if (s === 'green') {
+                    osmBuildings.style = new Cesium.Cesium3DTileStyle({
+                        color: "color('#00ff88', 0.8)"
+                    });
+                } else if (s === 'heat') {
+                    osmBuildings.style = new Cesium.Cesium3DTileStyle({
+                        color: {
+                            conditions: [
+                                ["${height} > 50", "color('#ff4444', 0.8)"],
+                                ["${height} > 25", "color('#ff8844', 0.8)"],
+                                ["true", "color('#ffaa44', 0.8)"]
+                            ]
+                        }
+                    });
+                } else if (s === 'flood') {
+                    osmBuildings.style = new Cesium.Cesium3DTileStyle({
+                        color: "color('#4444ff', 0.7)"
+                    });
+                } else {
+                    osmBuildings.style = new Cesium.Cesium3DTileStyle({
+                        color: {
+                            conditions: [
+                                ["${height} > 50", "color('#00ff88', 0.7)"],
+                                ["${height} > 25", "color('#88ffaa', 0.7)"],
+                                ["true", "color('#aaffcc', 0.7)"]
+                            ]
+                        }
+                    });
+                }
+            });
+        });
+
+        // Update coordinates on camera move
+        viewer.camera.moveEnd.addEventListener(() => {
+            const cameraPosition = viewer.camera.positionCartographic;
+            const lon = Cesium.Math.toDegrees(cameraPosition.longitude).toFixed(4);
+            const lat = Cesium.Math.toDegrees(cameraPosition.latitude).toFixed(4);
+            document.getElementById('coordinates').innerHTML = 
+                `<i class="fas fa-map-marker-alt"></i> ${lat}°N, ${lon}°W · VIEW CENTER`;
+        });
+
+        // Initial toast
+        showToast('🌍 SDG 11 DIGITAL TWIN · SYSTEM ONLINE', 4000);
+
+        console.log('SDG 11 Digital Twin initialized with black/green theme');
+    </script>
+</body>
+</html>
